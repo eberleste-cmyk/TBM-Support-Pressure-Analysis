@@ -88,7 +88,8 @@ export function calculateSiloSigmaV(Z_target, sigma_s, h_w, layers, silo_model, 
             silo_sigma_prime_v: sigma_s, 
             B: 0, 
             B_formula_str: '', 
-            avg_props: { gamma_effective_av: 0, c_av: 0, phi_av: 0 } 
+            avg_props: { gamma_effective_av: 0, c_av: 0, phi_av: 0 },
+            lambda: 0
         };
     }
     
@@ -130,7 +131,8 @@ export function calculateSiloSigmaV(Z_target, sigma_s, h_w, layers, silo_model, 
         silo_sigma_prime_v: sigma_prime_v_silo, 
         B: Rh, 
         B_formula_str: B_formula_str_val, 
-        avg_props: avg_props
+        avg_props: avg_props,
+        lambda: lambda
     };
 }
 

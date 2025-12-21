@@ -3,7 +3,6 @@
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TUN FaceSupportCalculator</title>
-    <!-- Load local libraries -->
     <!-- Load Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Chart.js for plotting -->
@@ -12,7 +11,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
     <style>
         /* Custom scrollbar for better aesthetics */
         ::-webkit-scrollbar { width: 8px; }
@@ -289,6 +287,7 @@
                             <li>c' (Cohesion, avg.): <span id="silo_formula_c">N/A</span> kN/m²</li>
                             <li>φ' (Friction Angle, avg.): <span id="silo_formula_phi">N/A</span> deg</li>
                             <li>K₁: <span id="silo_formula_k1">N/A</span></li>
+                            <li>&lambda; (lambda = K₁&middot;tan&phi;'): <span id="silo_formula_lambda">N/A</span></li>
                             <li>σ<sub>s</sub> (Surcharge): <span id="silo_formula_surcharge">N/A</span> kN/m²</li>
                             <li>z (Overburden): <span id="silo_formula_z">N/A</span> m</li>
                         </ul>

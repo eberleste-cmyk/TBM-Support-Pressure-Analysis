@@ -336,6 +336,7 @@ export function updateSiloDetails(apply_silo, siloResult, sigma_v_prime_crown_ma
         safeSetText('silo_formula_c', siloResult.avg_props.c_av.toFixed(2));
         safeSetText('silo_formula_phi', siloResult.avg_props.phi_av.toFixed(2));
         safeSetText('silo_formula_k1', silo_k1.toFixed(2));
+        safeSetText('silo_formula_lambda', siloResult.lambda.toFixed(3));
         safeSetText('silo_formula_surcharge', sigma_s_total.toFixed(2));
         safeSetText('silo_formula_z', t_crown.toFixed(2));
         siloDisplay.classList.remove('hidden');
