@@ -113,7 +113,8 @@ export function drawWedgeSketch(D, t_crown, h_w, theta_crit, layers) {
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
-    const margin = { top: 30, right: 30, bottom: 30, left: 30 };
+    // Adjusted right margin to make space for layer names
+    const margin = { top: 30, right: 80, bottom: 30, left: 30 };
     const drawableWidth = width - margin.left - margin.right;
     const drawableHeight = height - margin.top - margin.bottom;
 
@@ -177,18 +178,19 @@ export function drawWedgeSketch(D, t_crown, h_w, theta_crit, layers) {
     }
     ctx.restore();
 
-    // Draw layer names on top of background
+    // Draw layer names to the right of the sketch
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#4b5563';
-    ctx.font = 'bold 9px sans-serif';
+    ctx.fillStyle = 'black';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textBaseline = 'middle';
     let currentDepthForLabels = 0;
     layers.forEach((layer) => {
         const p1_y = transform(0, currentDepthForLabels).y;
         const p2_y = transform(0, layer.depth).y;
         const mid_y = (p1_y + p2_y) / 2;
 
-        if (p2_y - p1_y > 12 && mid_y > margin.top && mid_y < (margin.top + drawableHeight)) { // Check if label is visible
-            ctx.fillText(layer.name, margin.left + 5, mid_y);
+        if (p2_y > p1_y && mid_y > margin.top && mid_y < (margin.top + drawableHeight)) {
+            ctx.fillText(layer.name, margin.left + drawableWidth + 8, mid_y);
         }
         currentDepthForLabels = layer.depth;
     });
