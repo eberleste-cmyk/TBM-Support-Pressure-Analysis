@@ -232,23 +232,30 @@ export function drawWedgeSketch(D, t_crown, h_w, theta_crit, layers, apply_silo,
     if (theta_crit > 1 && theta_crit < 89) {
         const pWedgeTip = transform(wedgeWidth, t_crown);
         const pPrismTopLeft = transform(0, 0);
+        const pPrismTopRight = transform(wedgeWidth, 0);
         const pTunnelCrown = transform(0, t_crown);
         const pTunnelInvert = transform(0, t_crown + D);
 
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
         ctx.strokeStyle = 'rgba(220, 38, 38, 0.6)';
         ctx.lineWidth = 1;
-        // Prism part
+
+        // Prism part (the rectangle above the tunnel crown)
         ctx.beginPath();
         ctx.moveTo(pPrismTopLeft.x, pPrismTopLeft.y);
-        ctx.lineTo(pWedgeTip.x, pPrismTopLeft.y);
+        ctx.lineTo(pPrismTopRight.x, pPrismTopRight.y);
         ctx.lineTo(pWedgeTip.x, pWedgeTip.y);
         ctx.lineTo(pTunnelCrown.x, pTunnelCrown.y);
         ctx.closePath();
-        ctx.stroke(); // Stroke only, no fill, to keep silo visible underneath
         
-        // Wedge part
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+        // Conditionally fill the prism
+        if (!apply_silo) {
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.15)'; // Light red fill
+            ctx.fill();
+        }
+        ctx.stroke(); // Always draw the outline of the prism.
+        
+        // Wedge part (the triangle below the crown)
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.3)'; // Slightly darker red fill for wedge
         ctx.beginPath();
         ctx.moveTo(pTunnelInvert.x, pTunnelInvert.y);
         ctx.lineTo(pTunnelCrown.x, pTunnelCrown.y);
