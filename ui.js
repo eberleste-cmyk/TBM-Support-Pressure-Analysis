@@ -107,13 +107,12 @@ function safeSetText(id, value) {
     if (el) el.textContent = value;
 }
 
-export function drawWedgeSketch(D, t_crown, h_w, theta_crit, layers) {
+export function drawWedgeSketch(D, t_crown, h_w, theta_crit, layers, apply_silo, siloResult) {
     const canvas = document.getElementById('sketchCanvas');
     if (!canvas || !canvas.getContext) return;
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
-    // Adjusted right margin to make space for layer names
     const margin = { top: 30, right: 80, bottom: 30, left: 30 };
     const drawableWidth = width - margin.left - margin.right;
     const drawableHeight = height - margin.top - margin.bottom;
@@ -188,19 +187,89 @@ export function drawWedgeSketch(D, t_crown, h_w, theta_crit, layers) {
         const p1_y = transform(0, currentDepthForLabels).y;
         const p2_y = transform(0, layer.depth).y;
         const mid_y = (p1_y + p2_y) / 2;
-
         if (p2_y > p1_y && mid_y > margin.top && mid_y < (margin.top + drawableHeight)) {
             ctx.fillText(layer.name, margin.left + drawableWidth + 8, mid_y);
         }
         currentDepthForLabels = layer.depth;
     });
 
+    // 2. Draw Silo Height visualization (now respects wedge width)
+    if (apply_silo && siloResult && wedgeWidth > 0) {
+        const { h1, h2 } = siloResult;
+        const pSiloLeft = transform(0, 0);
+        const pSiloRight = transform(wedgeWidth, 0);
+        
+        ctx.lineWidth = 1;
+        ctx.font = 'bold 10px sans-serif';
+        
+        // Draw h2 (surcharge soil) if it exists
+        if (h2 > 0) {
+            const pSurchargeTop = transform(0, 0);
+            const pSurchargeBottom = transform(0, h2);
+            ctx.fillStyle = 'rgba(251, 146, 60, 0.2)'; // Light orange
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
+            ctx.fillRect(pSiloLeft.x, pSurchargeTop.y, pSiloRight.x - pSiloLeft.x, pSurchargeBottom.y - pSurchargeTop.y);
+            ctx.strokeRect(pSiloLeft.x, pSurchargeTop.y, pSiloRight.x - pSiloLeft.x, pSurchargeBottom.y - pSurchargeTop.y);
+            ctx.fillStyle = '#d97706'; // Darker orange
+            ctx.textAlign = 'left';
+            ctx.fillText(`h₂ = ${h2.toFixed(1)}m`, pSiloLeft.x + 5, (pSurchargeTop.y + pSurchargeBottom.y) / 2);
+        }
+        
+        // Draw h1 (effective silo)
+        const pSiloTop = transform(0, h2);
+        const pSiloBottom = transform(0, t_crown);
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.2)'; // Light green
+        ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
+        ctx.fillRect(pSiloLeft.x, pSiloTop.y, pSiloRight.x - pSiloLeft.x, pSiloBottom.y - pSiloTop.y);
+        ctx.strokeRect(pSiloLeft.x, pSiloTop.y, pSiloRight.x - pSiloLeft.x, pSiloBottom.y - pSiloTop.y);
+        ctx.fillStyle = '#16a34a'; // Darker green
+        ctx.textAlign = 'left';
+        ctx.fillText(`h₁ = ${h1.toFixed(1)}m`, pSiloLeft.x + 5, (pSiloTop.y + pSiloBottom.y) / 2);
+    }
 
-    // 2. Draw Tunnel
+
+    // 3. Draw Failure Wedge (drawn after silo so it's on top)
+    if (theta_crit > 1 && theta_crit < 89) {
+        const pWedgeTip = transform(wedgeWidth, t_crown);
+        const pPrismTopLeft = transform(0, 0);
+        const pTunnelCrown = transform(0, t_crown);
+        const pTunnelInvert = transform(0, t_crown + D);
+
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
+        ctx.strokeStyle = 'rgba(220, 38, 38, 0.6)';
+        ctx.lineWidth = 1;
+        // Prism part
+        ctx.beginPath();
+        ctx.moveTo(pPrismTopLeft.x, pPrismTopLeft.y);
+        ctx.lineTo(pWedgeTip.x, pPrismTopLeft.y);
+        ctx.lineTo(pWedgeTip.x, pWedgeTip.y);
+        ctx.lineTo(pTunnelCrown.x, pTunnelCrown.y);
+        ctx.closePath();
+        ctx.stroke(); // Stroke only, no fill, to keep silo visible underneath
+        
+        // Wedge part
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+        ctx.beginPath();
+        ctx.moveTo(pTunnelInvert.x, pTunnelInvert.y);
+        ctx.lineTo(pTunnelCrown.x, pTunnelCrown.y);
+        ctx.lineTo(pWedgeTip.x, pWedgeTip.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Sliding plane
+        ctx.strokeStyle = '#991b1b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(pTunnelInvert.x, pTunnelInvert.y);
+        ctx.lineTo(pWedgeTip.x, pWedgeTip.y);
+        ctx.stroke();
+    }
+
+    // 4. Draw Tunnel (drawn last to be on top of everything)
     const pTunnelCrown = transform(0, t_crown);
     const pTunnelInvert = transform(0, t_crown + D);
     const pTunnelBody = transform(-D, t_crown);
-
     ctx.fillStyle = '#374151';
     ctx.strokeStyle = '#111827';
     ctx.lineWidth = 2;
@@ -211,41 +280,7 @@ export function drawWedgeSketch(D, t_crown, h_w, theta_crit, layers) {
     ctx.lineTo(pTunnelInvert.x, pTunnelInvert.y);
     ctx.stroke();
 
-    // 3. Draw Failure Wedge
-    if (theta_crit > 1 && theta_crit < 89) {
-        const pWedgeTip = transform(wedgeWidth, t_crown);
-        const pPrismTopLeft = transform(0, 0);
-
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
-        ctx.strokeStyle = 'rgba(220, 38, 38, 0.6)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(pPrismTopLeft.x, pPrismTopLeft.y);
-        ctx.lineTo(pWedgeTip.x, pPrismTopLeft.y);
-        ctx.lineTo(pWedgeTip.x, pWedgeTip.y);
-        ctx.lineTo(pTunnelCrown.x, pTunnelCrown.y);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
-        ctx.beginPath();
-        ctx.moveTo(pTunnelInvert.x, pTunnelInvert.y);
-        ctx.lineTo(pTunnelCrown.x, pTunnelCrown.y);
-        ctx.lineTo(pWedgeTip.x, pWedgeTip.y);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.strokeStyle = '#991b1b';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(pTunnelInvert.x, pTunnelInvert.y);
-        ctx.lineTo(pWedgeTip.x, pWedgeTip.y);
-        ctx.stroke();
-    }
-    
-    // 4. Draw Labels and Annotations
+    // 5. Draw Labels and Annotations
     ctx.fillStyle = '#000';
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
@@ -319,33 +354,61 @@ export function updateMainResults({ E_max_re, W_re, E_max_ci, W_ci, S_ci, D, the
     safeSetText('faceAreaCircular', ((Math.PI * D * D) / 4).toFixed(2));
 }
 
-export function updateSiloDetails(apply_silo, siloResult, sigma_v_prime_crown_max_no_silo, sigma_s_total, t_crown, silo_k1) {
+export function updateSiloDetails(apply_silo, siloResult, sigma_v_prime_crown_max_no_silo) {
     const siloDisplay = document.getElementById('silo-details-display-max');
     if (!siloDisplay) return;
-    
+
     if (apply_silo && siloResult) {
+        siloDisplay.innerHTML = ''; // Clear previous content
         const remainingLoad = sigma_v_prime_crown_max_no_silo > 1e-6 ? (siloResult.silo_sigma_prime_v / sigma_v_prime_crown_max_no_silo) * 100 : 0;
-        const siloModelSelect = document.getElementById('silo_model');
-        safeSetText('silo_model_info_max', siloModelSelect ? siloModelSelect.options[siloModelSelect.selectedIndex].text : 'N/A');
-        safeSetText('silo_B_value', siloResult.B.toFixed(3));
-        const formulaEl = document.getElementById('silo_B_formula_details');
-        if (formulaEl) formulaEl.innerHTML = siloResult.B_formula_str;
-        safeSetText('silo_sigma_v_max_with', siloResult.silo_sigma_prime_v.toFixed(2));
-        safeSetText('silo_sigma_v_max_without', sigma_v_prime_crown_max_no_silo.toFixed(2));
-        safeSetText('silo_remaining_load', remainingLoad.toFixed(2));
-        safeSetText('silo_formula_B', siloResult.B.toFixed(3));
-        safeSetText('silo_formula_gamma', siloResult.avg_props.gamma_effective_av.toFixed(2));
-        safeSetText('silo_formula_c', siloResult.avg_props.c_av.toFixed(2));
-        safeSetText('silo_formula_phi', siloResult.avg_props.phi_av.toFixed(2));
-        safeSetText('silo_formula_k1', silo_k1.toFixed(2));
-        safeSetText('silo_formula_lambda', siloResult.lambda.toFixed(3));
-        safeSetText('silo_formula_surcharge', sigma_s_total.toFixed(2));
-        safeSetText('silo_formula_z', t_crown.toFixed(2));
+        
+        const content = `
+            <h3 class="font-semibold text-sm text-gray-800">Silo Theory Calculation (DAUB 2005 - Infinite Strip)</h3>
+            <div class="text-sm font-mono mt-2 space-y-1">
+                <p class="font-bold">1. Silo Geometry (Terzaghi's b₁)</p>
+                <p class="ml-4">Avg. Face Friction Angle (φ'<sub>face</sub>): ${siloResult.phi_for_b1.toFixed(1)} deg</p>
+                <p class="ml-4">Silo Half-Width (b₁): ${siloResult.B.toFixed(3)} m</p>
+                <p class="text-xs text-gray-500 ml-8">${siloResult.B_formula_str}</p>
+                
+                <p class="mt-2 pt-1 border-t border-gray-200 font-bold">2. Silo Height Limit (DAUB Rec.)</p>
+                <p class="ml-4">Total Overburden (t<sub>crown</sub>): ${document.getElementById('t_crown').value} m</p>
+                <p class="ml-4">Silo Height Limit (5 x b₁): ${siloResult.h_limit.toFixed(2)} m</p>
+                <p class="ml-4 text-green-700">Effective Silo Height (h₁): ${siloResult.h1.toFixed(2)} m</p>
+                <p class="ml-4 text-orange-700">Surcharge Soil Height (h₂): ${siloResult.h2.toFixed(2)} m</p>
+                
+                <p class="mt-2 pt-1 border-t border-gray-200 font-bold">3. Janssen's Formula & Parameters</p>
+                <p class="text-xs text-gray-600 bg-gray-100 p-2 rounded my-2">
+                    σ'<sub>v</sub>(z) = [ (B·γ' - c') / λ ] · (1 - e<sup>-λ·z/B</sup>) + σ'<sub>s</sub>·e<sup>-λ·z/B</sup>
+                    <span class="text-gray-500 italic block mt-1">where λ = K₁·tanφ'</span>
+                </p>
+                <div class="bg-gray-50 p-2 rounded mt-1 text-xs">
+                    <p class="font-semibold">Values used in formula:</p>
+                    <ul class="list-disc list-inside ml-2 grid grid-cols-2 gap-x-4">
+                        <li>B: ${siloResult.B.toFixed(3)} m</li>
+                        <li>z (height h₁): ${siloResult.h1.toFixed(2)} m</li>
+                        <li>σ'<sub>s</sub> (surcharge): ${siloResult.silo_surcharge.toFixed(2)} kN/m²</li>
+                        <li>γ'<sub>eff</sub>: ${siloResult.avg_props.gamma_effective_av.toFixed(2)} kN/m³</li>
+                        <li>c': ${siloResult.avg_props.c_av.toFixed(2)} kN/m²</li>
+                        <li>φ'<sub>silo</sub>: ${siloResult.avg_props.phi_av.toFixed(1)} deg</li>
+                        <li>K₁: ${document.getElementById('silo_k1').value}</li>
+                        <li>λ: ${siloResult.lambda.toFixed(3)}</li>
+                    </ul>
+                    <p class="text-gray-500 italic mt-1 text-center">Note: γ', c', and φ'<sub>silo</sub> are averaged over height h₁.</p>
+                </div>
+
+                <p class="mt-2 pt-1 border-t-2 border-gray-300 font-bold">4. Final Result</p>
+                <p class="ml-4">Stress without Silo Effect: ${sigma_v_prime_crown_max_no_silo.toFixed(2)} kN/m²</p>
+                <p class="ml-4">Stress with Silo Effect (σ'<sub>v,crown,max</sub>): <strong class="text-blue-700">${siloResult.silo_sigma_prime_v.toFixed(2)}</strong> kN/m²</p>
+                <p class="ml-4">Remaining Load: ${remainingLoad.toFixed(2)} %</p>
+            </div>`;
+
+        siloDisplay.innerHTML = content;
         siloDisplay.classList.remove('hidden');
     } else {
         siloDisplay.classList.add('hidden');
     }
 }
+
 
 function updateIngressCheck(prefix, checkData) {
     safeSetText(`ingress_s_${prefix}_provided`, checkData.min_pressure.toFixed(2));

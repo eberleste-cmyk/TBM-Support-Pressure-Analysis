@@ -10,7 +10,6 @@ const SINGLE_INPUTS = [
     { id: 'k2_model', name: 'Lateral Pressure Coeff. (K2) Model' },
     { id: 'sigma_v_model', name: 'Vertical Stress Distribution Model' },
     { id: 'apply_silo', name: 'Apply Silo Theory Checkbox' },
-    { id: 'silo_model', name: 'Silo Shape Model' },
     { id: 'silo_k1', name: 'Silo K1 Value' },
     { id: 'eta_E', name: 'Safety Factor eta_E (Earth)' },
     { id: 'eta_W', name: 'Safety Factor eta_W (Water)' },

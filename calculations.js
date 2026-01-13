@@ -3,7 +3,8 @@ export const GAMMA_W = 10.0; // Unit weight of water [kN/m³]
 
 /**
  * Calculates height-weighted average EFFECTIVE unit weight, cohesion, and friction angle
- * over a specified silo height (Z_target). It uses total gamma above GWL and submerged gamma below.
+ * over a specified height (Z_target), starting from the ground surface.
+ * It uses total gamma above GWL and submerged gamma below.
  */
 export function calculateSiloAverages(Z_target, h_w, layers, useMinGammas = false) {
     if (Z_target <= 0) {
@@ -46,6 +47,7 @@ export function calculateSiloAverages(Z_target, h_w, layers, useMinGammas = fals
         if (Z_target <= layerBottom) break; 
     }
     
+    // Handle cases where Z_target is deeper than the defined layers
     if (Z_target > currentDepth && layers.length > 0) {
         const lastLayer = layers[layers.length - 1];
         const extraHeight = Z_target - currentDepth;
@@ -79,60 +81,121 @@ export function calculateSiloAverages(Z_target, h_w, layers, useMinGammas = fals
 }
 
 /**
- * Calculates EFFECTIVE vertical stress (sigma'_v) using Janssen's silo theory
- * with height-weighted average effective soil properties.
+ * NEW HELPER: Calculates height-weighted average friction angle over the tunnel face height D.
+ * This is a specialized function to get the phi needed for the b1 calculation.
  */
-export function calculateSiloSigmaV(Z_target, sigma_s, h_w, layers, silo_model, D, theta_crit, silo_k1, useMinGammas = false) {
-    if (Z_target <= 0) {
-        return { 
-            silo_sigma_prime_v: sigma_s, 
-            B: 0, 
-            B_formula_str: '', 
-            avg_props: { gamma_effective_av: 0, c_av: 0, phi_av: 0 },
-            lambda: 0
-        };
-    }
-    
-    let Rh;
-    let B_formula_str_val = '';
-    const D_fixed = D.toFixed(3);
+function calculateTunnelFacePhiAv(t_crown, D, layers) {
+    if (D <= 0) return 0;
+    const topZ = t_crown;
+    const bottomZ = t_crown + D;
+    let weightedPhi = 0;
+    let totalHeight = 0;
+    let currentDepth = 0;
 
-    if (silo_model === 'infinite_strip') {
-        Rh = D / 2;
-        B_formula_str_val = `B = D/2 = ${D_fixed}/2`;
-    } else if (silo_model === 'quadratic') {
-        Rh = D / 4;
-        B_formula_str_val = `B = D/4 = ${D_fixed}/4`;
-    } else { // rectangular
-        const L_wedge = D / Math.tan(theta_crit * D2R);
-        Rh = (D * L_wedge) / (2 * (D + L_wedge));
-        B_formula_str_val = `B = (D · L<sub>wedge</sub>) / (2 · (D + L<sub>wedge</sub>)) = (${D_fixed} · ${L_wedge.toFixed(3)}) / (2 · (${D_fixed} + ${L_wedge.toFixed(3)}))`;
+    for (const layer of layers) {
+        const layerTop = currentDepth;
+        const layerBottom = layer.depth;
+        const intersectionTopZ = Math.max(topZ, layerTop);
+        const intersectionBottomZ = Math.min(bottomZ, layerBottom);
+        
+        if (intersectionBottomZ > intersectionTopZ) {
+            const height = intersectionBottomZ - intersectionTopZ;
+            weightedPhi += layer.phi * height;
+            totalHeight += height;
+        }
+        
+        currentDepth = layer.depth;
+        if (layerTop >= bottomZ) break;
     }
 
-    const avg_props = calculateSiloAverages(Z_target, h_w, layers, useMinGammas);
-    const { gamma_effective_av, c_av, phi_av } = avg_props;
-    const phi_rad_av = phi_av * D2R;
+    if (totalHeight < 1e-6) {
+        const centerZ = t_crown + D / 2;
+        for (const layer of layers) {
+            if (centerZ <= layer.depth) return layer.phi;
+        }
+        const lastLayer = layers[layers.length - 1];
+        return lastLayer ? lastLayer.phi : 0;
+    }
+
+    return weightedPhi / totalHeight;
+}
+
+
+/**
+ * Calculates EFFECTIVE vertical stress (sigma'_v) using Janssen's silo theory,
+ * incorporating Terzaghi's b1 width and the DAUB 5*b1 height limit.
+ */
+export function calculateSiloSigmaV(t_crown, sigma_s_user, h_w, layers, D, silo_k1, useMinGammas = false) {
+    if (t_crown <= 0 || D <= 0) {
+        return { silo_sigma_prime_v: sigma_s_user, B: 0, B_formula_str: '', avg_props: { gamma_effective_av: 0, c_av: 0, phi_av: 0 }, lambda: 0, h1: 0, h2: 0, silo_surcharge: sigma_s_user, phi_for_b1: 0 };
+    }
+
+    // Step 1: Calculate Terzaghi's half silo width b1
+    // This uses the friction angle averaged over the tunnel face height.
+    const phi_av_face = calculateTunnelFacePhiAv(t_crown, D, layers);
+    const r = D / 2;
+    const phi_rad_face = phi_av_face * D2R;
+    const theta_terzaghi_rad = (45 * D2R) + (phi_rad_face / 2); // ϑ = 45° + φ'/2
+    const b1 = r / Math.tan(theta_terzaghi_rad / 2); // DAUB 2005, Eq. (2)
+    const B = b1;
+    const B_formula_str_val = `b₁ = r / tan((45°+φ'face/2)/2) = (${r.toFixed(3)}) / tan((45° + ${phi_av_face.toFixed(1)}°)/2)`;
+
+    // Step 2: Apply the 5*b1 height limit (DAUB 2005, p.49)
+    const h_limit = 5 * B;
+    let h1, h2; // h1 = effective silo height, h2 = surcharge soil height
+    if (t_crown <= h_limit) {
+        h1 = t_crown;
+        h2 = 0;
+    } else {
+        h1 = h_limit;
+        h2 = t_crown - h1;
+    }
+
+    // Step 3: Calculate the total surcharge at the top of the effective silo (h1)
+    let silo_surcharge = sigma_s_user;
+    if (h2 > 0) {
+        // The weight of the soil column h2 acts as an additional surcharge.
+        // We need the average effective gamma of this h2 column.
+        const h2_props = calculateSiloAverages(h2, h_w, layers, useMinGammas);
+        silo_surcharge += h2_props.gamma_effective_av * h2;
+    }
+
+    // Step 4: Calculate average properties for the Janssen formula over the effective silo height h1
+    // Note: The properties are averaged from the top of the surcharge soil (h2) down to the crown.
+    // So we calculate properties over the full t_crown and subtract the h2 part. This is complex.
+    // A simpler, standard approach is to average properties over the silo height h1 itself.
+    const silo_props = calculateSiloAverages(h1, h_w, layers, useMinGammas);
+    const { gamma_effective_av, c_av, phi_av } = silo_props;
+
+    // Step 5: Apply Janssen's formula using the calculated parameters
+    const phi_rad_silo = phi_av * D2R;
     const K = silo_k1;
-    const tan_phi_av = Math.tan(phi_rad_av);
-    const lambda = K * tan_phi_av;
+    const tan_phi_silo = Math.tan(phi_rad_silo);
+    const lambda = K * tan_phi_silo;
 
     let sigma_prime_v_silo;
-    
-    if (Math.abs(lambda) < 1e-9 || Rh < 1e-6) {
-        sigma_prime_v_silo = sigma_s + (gamma_effective_av - c_av / Math.max(Rh, 1e-6)) * Z_target;
+    if (Math.abs(lambda) < 1e-9 || B < 1e-6) {
+        // Fallback for cohesionless/frictionless soil or zero width
+        sigma_prime_v_silo = silo_surcharge + (gamma_effective_av - c_av / Math.max(B, 1e-6)) * h1;
     } else {
-        const exponent_term = Math.exp(-lambda * Z_target / Rh);
-        const term1 = sigma_s * exponent_term;
-        const term2 = ((gamma_effective_av * Rh - c_av) / lambda) * (1 - exponent_term);
+        const exponent_term = Math.exp(-lambda * h1 / B);
+        const term1 = silo_surcharge * exponent_term;
+        const term2 = ((gamma_effective_av * B - c_av) / lambda) * (1 - exponent_term);
         sigma_prime_v_silo = term1 + term2;
     }
     
     return { 
         silo_sigma_prime_v: sigma_prime_v_silo, 
-        B: Rh, 
+        B: B, 
         B_formula_str: B_formula_str_val, 
-        avg_props: avg_props,
-        lambda: lambda
+        avg_props: silo_props, // Properties averaged over h1
+        lambda: lambda,
+        h1: h1,
+        h2: h2,
+        silo_surcharge: silo_surcharge,
+        phi_for_b1: phi_av_face, // For UI transparency
+        user_surcharge: sigma_s_user,
+        h_limit: h_limit
     };
 }
 

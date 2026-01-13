@@ -101,7 +101,6 @@ function updatePlot() {
     const sigma_v_model = document.getElementById('sigma_v_model').value;
     const delta_P = parseFloat(document.getElementById('delta_P').value) || 0;
     const apply_silo = document.getElementById('apply_silo').checked;
-    const silo_model = document.getElementById('silo_model').value;
     const silo_k1 = parseFloat(document.getElementById('silo_k1').value) || 0.8;
 
     // 2. Geotechnical Calculations
@@ -112,17 +111,17 @@ function updatePlot() {
     
     let siloResult = null;
     if (apply_silo) {
-        siloResult = calc.calculateSiloSigmaV(t_crown, sigma_s_total, h_w, soilLayers, silo_model, D, globalThetaCrit, silo_k1, false);
+        siloResult = calc.calculateSiloSigmaV(t_crown, sigma_s_total, h_w, soilLayers, D, silo_k1, false);
         sigma_v_prime_crown_max_final = siloResult.silo_sigma_prime_v;
     }
     
     const sigma_v_prime_crown_min = calc.calculateSigmaVPrime(t_crown, sigma_s_p, h_w, soilLayers, true);
 
     ui.updateAveragePropertiesDisplay(sideProps, baseProps, sigma_v_prime_crown_max_final, sigma_v_prime_crown_min);
-    ui.updateSiloDetails(apply_silo, siloResult, sigma_v_prime_crown_max_no_silo, sigma_s_total, t_crown, silo_k1);
+    ui.updateSiloDetails(apply_silo, siloResult, sigma_v_prime_crown_max_no_silo);
 
     if (D <= 0) {
-        ui.drawWedgeSketch(D, t_crown, h_w, 0, soilLayers); // Draw with a clear message
+        ui.drawWedgeSketch(D, t_crown, h_w, 0, soilLayers, false, null); // Draw with a clear message
         return;
     }
 
@@ -180,7 +179,7 @@ function updatePlot() {
 
     // 8. Render Always-Visible Chart & Sketch
     chartInstances.ere = charts.renderEreChart(document.getElementById('EreChart').getContext('2d'), chartInstances.ere, ereData, E_max_re, thetaCrit);
-    ui.drawWedgeSketch(D, t_crown, h_w, globalThetaCrit, soilLayers);
+    ui.drawWedgeSketch(D, t_crown, h_w, globalThetaCrit, soilLayers, apply_silo, siloResult);
 
     // 9. Render the chart for the currently active tab
     renderActiveChart();

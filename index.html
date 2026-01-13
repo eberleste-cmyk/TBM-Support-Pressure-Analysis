@@ -180,20 +180,12 @@
                     </div>
                     <div id="silo_options" class="hidden mt-2 pl-4 space-y-2">
                         <div>
-                            <label for="silo_model" class="block text-xs font-medium text-gray-700">Silo Shape</label>
-                            <select id="silo_model" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-1 border text-xs" onchange="updatePlot()">
-                                <option value="infinite_strip" selected="">Infinite Strip (Dxinfinite)</option>
-                                <option value="rectangular">Rectangular (DxLwedge)</option>
-                                <option value="quadratic">Quadratic (DxD)</option>
-                            </select>
-                        </div>
-                        <div>
                             <label for="silo_k1" class="block text-xs font-medium text-gray-700">Lateral Earth Pressure Coeff. (K₁)</label>
                             <input type="number" id="silo_k1" value="0.8" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-1 border text-xs" onchange="updatePlot()">
                             <p class="text-xs text-gray-500 mt-1">Used for silo shear plane friction.</p>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Reduces vertical stress due to arching against side walls.</p>
+                    <p class="text-xs text-gray-500 mt-1">Reduces vertical stress due to arching (Infinite Strip model).</p>
                 </div>
 
                 <!-- Safety Factors -->
@@ -268,33 +260,7 @@
 
                 <!-- Display Area for Silo Calculation Details -->
                 <div id="silo-details-display-max" class="hidden mt-4 p-3 bg-white border border-blue-300 rounded-md">
-                    <h3 class="font-semibold text-sm text-gray-800">Silo Theory Calculation Details (for σ<sub>v,max</sub>):</h3>
-                    <div class="text-sm font-mono mt-2 space-y-1">
-                        <p>Silo Model: <span id="silo_model_info_max">N/A</span></p>
-                        <p>Characteristic Length B (Hydraulic Radius): <span id="silo_B_value">N/A</span> m</p>
-                        <p class="text-xs text-gray-500 ml-4" id="silo_B_formula_details"></p>
-                        <p class="mt-2 pt-1 border-t border-gray-200">Effective Stress at Crown (σ'<sub>v,crown,max</sub>):</p>
-                        <p class="ml-4">- With Silo Effect: <strong id="silo_sigma_v_max_with" class="text-blue-700">N/A</strong> kN/m²</p>
-                        <p class="ml-4">- Without Silo Effect: <span id="silo_sigma_v_max_without">N/A</span> kN/m²</p>
-                        <p class="ml-4">- Remaining Load: <span id="silo_remaining_load">N/A</span> %</p>
-                        
-                        <!-- NEW SECTION FOR FORMULA -->
-                        <p class="mt-2 pt-1 border-t border-gray-200">Janssen's Silo Formula (DAUB Eq. 12):</p>
-                        <p class="text-xs text-gray-600 bg-gray-100 p-2 rounded">
-                            σ'<sub>v</sub>(z) = [ (B·γ' - c') / (K₁·tanφ') ] · (1 - e<sup>-λ·z/B</sup>) + σ'<sub>s</sub>·e<sup>-λ·z/B</sup>
-                        </p>
-                        <p class="text-xs text-gray-500 ml-4">Values used for calculation (averaged over z = t<sub>crown</sub>):</p>
-                        <ul class="text-xs font-mono ml-6 list-disc list-inside">
-                            <li>B (Hydraulic Radius): <span id="silo_formula_B">N/A</span> m</li>
-                            <li>γ'_eff (Effective Unit Weight, avg.): <span id="silo_formula_gamma">N/A</span> kN/m³</li>
-                            <li>c' (Cohesion, avg.): <span id="silo_formula_c">N/A</span> kN/m²</li>
-                            <li>φ' (Friction Angle, avg.): <span id="silo_formula_phi">N/A</span> deg</li>
-                            <li>K₁: <span id="silo_formula_k1">N/A</span></li>
-                            <li>&lambda; (lambda = K₁&middot;tan&phi;'): <span id="silo_formula_lambda">N/A</span></li>
-                            <li>σ<sub>s</sub> (Surcharge): <span id="silo_formula_surcharge">N/A</span> kN/m²</li>
-                            <li>z (Overburden): <span id="silo_formula_z">N/A</span> m</li>
-                        </ul>
-                    </div>
+                    <!-- Content injected by ui.js -->
                 </div>
             </div>
 
