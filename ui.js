@@ -132,8 +132,9 @@ export function drawWedgeSketch(D, t_crown, h_w, theta_crit, layers, apply_silo,
     const sceneXMin = -0.5 * D;
     const sceneXMax = wedgeWidth * 1.1;
     const sceneWidth = sceneXMax - sceneXMin;
-    const sceneYMin = 0;
     const sceneYMax = (t_crown + D) * 1.1;
+    // DYNAMIC SCENE BOUNDS: Start scene from water level if it's above ground.
+    const sceneYMin = Math.min(0, h_w);
     const sceneHeight = sceneYMax - sceneYMin;
 
     if (sceneWidth <= 0 || sceneHeight <= 0) return;
@@ -164,17 +165,16 @@ export function drawWedgeSketch(D, t_crown, h_w, theta_crit, layers, apply_silo,
         ctx.fillRect(margin.left, p_last_y, drawableWidth, (margin.top + drawableHeight) - p_last_y);
     }
 
-    if (h_w > 0) {
-        const pGWT_y = transform(0, h_w).y;
-        ctx.strokeStyle = '#3b82f6';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 3]);
-        ctx.beginPath();
-        ctx.moveTo(margin.left, pGWT_y);
-        ctx.lineTo(margin.left + drawableWidth, pGWT_y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-    }
+    // Draw GWT Line (now works for negative h_w, i.e., water above ground)
+    const pGWT_y = transform(0, h_w).y;
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 3]);
+    ctx.beginPath();
+    ctx.moveTo(margin.left, pGWT_y);
+    ctx.lineTo(margin.left + drawableWidth, pGWT_y);
+    ctx.stroke();
+    ctx.setLineDash([]);
     ctx.restore();
 
     // Draw layer names to the right of the sketch

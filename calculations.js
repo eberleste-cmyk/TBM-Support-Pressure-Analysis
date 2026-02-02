@@ -231,29 +231,6 @@ export function calculateSigmaVPrime(Z, sigma_s, h_w, layers, useMinGammas = fal
     return sigma_prime_v;
 }
 
-function calculateTotalSigmaV(Z, sigma_s, layers, useMinGammas = false) {
-    let sigma_v = sigma_s;
-    if (Z <= 0) return sigma_v;
-    
-    let currentDepth = 0;
-    for (const layer of layers) {
-        const layerTop = currentDepth;
-        const layerBottom = layer.depth;
-        const sliceTop = Math.max(layerTop, 0);
-        const sliceBottom = Math.min(Z, layerBottom);
-        const sliceThickness = sliceBottom - sliceTop;
-
-        if (sliceThickness > 0) {
-            const gamma = useMinGammas ? (layer.gamma_min || layer.gamma_max) : layer.gamma_max;
-            sigma_v += gamma * sliceThickness;
-        }
-        
-        currentDepth = layerBottom;
-        if (Z <= layerBottom) break;
-    }
-    return sigma_v;
-}
-
 export function calculatePrismAverages(t_crown, D, h_w, layers) {
     const topZ = t_crown;
     const bottomZ = t_crown + D;
@@ -534,8 +511,9 @@ export function calculatePressureDistribution_PartialLowering(D, t_crown, h_w, E
     return { distribution: results, s_air_min, s_air_adv, s_air_min_stability, s_air_min_water_invert };
 }
 
-export function calculateBlowoutSafety_DAUB(t_crown, sigma_s_p, layers, s_operational, delta_P) {
-    const sigma_v_crown_min = calculateTotalSigmaV(t_crown, sigma_s_p, layers, true);
+export function calculateBlowoutSafety_DAUB(t_crown, sigma_v_prime_crown_min, h_w, s_operational, delta_P) {
+    const p_w_crown = Math.max(0, t_crown - h_w) * GAMMA_W;
+    const sigma_v_crown_min = sigma_v_prime_crown_min + p_w_crown;
     const s_crown_max_allowable = 0.9 * sigma_v_crown_min;
     const pressure_for_proof = s_operational + delta_P;
     const passed = s_crown_max_allowable >= pressure_for_proof;

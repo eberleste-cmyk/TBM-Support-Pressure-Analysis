@@ -157,14 +157,14 @@ function updatePlot() {
     // Scenario 1: No Lowering
     const pressureResults = calc.calculatePressureDistribution(D, t_crown, h_w, gamma_S, S_ci, eta_E, eta_W, E_max_ci, delta_P);
     ui.updatePressureScenario_NoLowering(pressureResults);
-    const blowoutResults = calc.calculateBlowoutSafety_DAUB(t_crown, sigma_s_p, soilLayers, pressureResults.s_crown_advance_min, delta_P);
+    const blowoutResults = calc.calculateBlowoutSafety_DAUB(t_crown, sigma_v_prime_crown_min, h_w, pressureResults.s_crown_advance_min, delta_P);
     ui.updateBlowoutCheck('no-lowering', blowoutResults);
     chartDataStore.noLowering = pressureResults.distribution;
 
     // Scenario 2: Full Lowering
     const fullLoweringResults = calc.calculatePressureDistribution_FullLowering(D, t_crown, h_w, E_max_ci, S_ci, eta_W, delta_P, (Math.PI * D * D) / 4);
     ui.updatePressureScenario_FullLowering(fullLoweringResults);
-    const blowoutResultsFull = calc.calculateBlowoutSafety_DAUB(t_crown, sigma_s_p, soilLayers, fullLoweringResults.s_air_adv, delta_P);
+    const blowoutResultsFull = calc.calculateBlowoutSafety_DAUB(t_crown, sigma_v_prime_crown_min, h_w, fullLoweringResults.s_air_adv, delta_P);
     ui.updateBlowoutCheck('full-lowering', blowoutResultsFull);
     chartDataStore.fullLowering = fullLoweringResults.distribution;
 
@@ -172,7 +172,7 @@ function updatePlot() {
     const { slurry_level_partial, gamma_S_partial } = ui.getPartialLoweringInputs();
     const partialLoweringResults = calc.calculatePressureDistribution_PartialLowering(D, t_crown, h_w, E_max_ci, S_ci, eta_W, delta_P, slurry_level_partial, gamma_S_partial, (Math.PI * D * D) / 4);
     ui.updatePressureScenario_PartialLowering(partialLoweringResults);
-    const blowoutResultsPartial = calc.calculateBlowoutSafety_DAUB(t_crown, sigma_s_p, soilLayers, partialLoweringResults.s_air_adv, delta_P);
+    const blowoutResultsPartial = calc.calculateBlowoutSafety_DAUB(t_crown, sigma_v_prime_crown_min, h_w, partialLoweringResults.s_air_adv, delta_P);
     ui.updateBlowoutCheck('partial-lowering', blowoutResultsPartial);
     chartDataStore.partialLowering = partialLoweringResults.distribution;
 
