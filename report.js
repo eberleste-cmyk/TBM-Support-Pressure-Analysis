@@ -211,7 +211,10 @@ export async function generatePDFReport(soilLayers) {
             doc.setFontSize(9).text(`Page ${i} of ${totalPages + 1}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
         }
 
-        doc.save('TBM_Support_Pressure_Report.pdf');
+        const safeFileName = (crossSection && crossSection !== 'N/A') 
+            ? `${crossSection.trim().replace(/[/\\?%*:|"<>]/g, '-')}.pdf` 
+            : 'TBM_Support_Pressure_Report.pdf';
+        doc.save(safeFileName);
 
     } catch (error) {
         console.error("PDF Generation Error:", error);
