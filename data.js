@@ -38,7 +38,12 @@ export function saveInputsToCSV(soilLayers) {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `tbm_analysis_inputs_${new Date().toISOString().slice(0,10)}.csv`);
+    const crossSection = document.getElementById('report_cross_section').value.trim();
+    const safeFileName = crossSection 
+        ? `${crossSection.replace(/[/\\?%*:|"<>]/g, '-')}.csv` 
+        : `tbm_analysis_inputs_${new Date().toISOString().slice(0,10)}.csv`;
+
+    link.setAttribute("download", safeFileName);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
